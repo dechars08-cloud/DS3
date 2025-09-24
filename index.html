@@ -22,6 +22,26 @@
     <div class="container mx-auto max-w-4xl bg-white p-6 rounded-lg shadow-2xl">
         <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">ระบบคำนวณเกรด 👩‍🏫</h1>
 
+        <!-- Summary Section -->
+        <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="bg-blue-100 p-4 rounded-lg text-center shadow-md">
+                <p class="text-xl font-semibold text-blue-800">จำนวนนักเรียนทั้งหมด</p>
+                <p id="totalStudents" class="text-4xl font-bold text-blue-900 mt-2">0</p>
+            </div>
+            <div class="bg-yellow-100 p-4 rounded-lg text-center shadow-md">
+                <p class="text-xl font-semibold text-yellow-800">คะแนนเฉลี่ย</p>
+                <p id="averageScore" class="text-4xl font-bold text-yellow-900 mt-2">0.00</p>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+            <h2 class="text-xl font-semibold mb-2 text-gray-700 text-center">การแจกแจงเกรด</h2>
+            <div class="flex justify-center">
+                <canvas id="gradeChart" class="max-w-full h-auto"></canvas>
+            </div>
+        </div>
+
         <!-- Score Weighting Configuration Section -->
         <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
             <h2 class="text-xl font-semibold mb-2 text-gray-700">ตั้งค่าน้ำหนักคะแนน</h2>
@@ -93,6 +113,11 @@
                     class="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-md hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shadow-md">
                 คำนวณเกรดทั้งหมด
             </button>
+            <button id="importCsvBtn"
+                    class="flex-1 bg-purple-600 text-white font-bold py-3 px-4 rounded-md hover:bg-purple-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 shadow-md">
+                นำเข้าจาก CSV
+            </button>
+            <input type="file" id="csvFileInput" class="hidden" accept=".csv">
             <button id="exportCsvBtn"
                     class="flex-1 bg-gray-600 text-white font-bold py-3 px-4 rounded-md hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 shadow-md">
                 ส่งออกเป็น CSV
@@ -100,6 +125,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // JavaScript Code
         document.addEventListener('DOMContentLoaded', () => {
@@ -110,6 +136,12 @@
             const workWeightInput = document.getElementById('workWeight');
             const examWeightInput = document.getElementById('examWeight');
             const exportCsvBtn = document.getElementById('exportCsvBtn');
+            const importCsvBtn = document.getElementById('importCsvBtn');
+            const csvFileInput = document.getElementById('csvFileInput');
+            const totalStudentsElem = document.getElementById('totalStudents');
+            const averageScoreElem = document.getElementById('averageScore');
+            const gradeChartCtx = document.getElementById('gradeChart').getContext('2d');
+            let gradeChart;
 
             // Initial student data for demonstration
             const initialStudents = [
@@ -164,6 +196,80 @@
                 return { totalScore: totalScore.toFixed(2), grade };
             }
 
+            // Function to update the summary cards and chart
+            function updateSummary() {
+                const workWeight = parseFloat(workWeightInput.value);
+                const examWeight = parseFloat(examWeightInput.value);
+
+                if (students.length === 0) {
+                    totalStudentsElem.textContent = '0';
+                    averageScoreElem.textContent = '0.00';
+                    if (gradeChart) gradeChart.destroy();
+                    return;
+                }
+                
+                // Calculate total and average score
+                const totalScoreSum = students.reduce((sum, student) => {
+                    const { totalScore } = calculateGrade(student.workScore, student.examScore, workWeight, examWeight);
+                    return sum + parseFloat(totalScore);
+                }, 0);
+                const averageScore = totalScoreSum / students.length;
+
+                // Count students by grade
+                const gradeCounts = { 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'F': 0 };
+                students.forEach(student => {
+                    const { grade } = calculateGrade(student.workScore, student.examScore, workWeight, examWeight);
+                    gradeCounts[grade]++;
+                });
+
+                // Update summary cards
+                totalStudentsElem.textContent = students.length;
+                averageScoreElem.textContent = averageScore.toFixed(2);
+
+                // Update or create the chart
+                if (gradeChart) {
+                    gradeChart.data.datasets[0].data = Object.values(gradeCounts);
+                    gradeChart.update();
+                } else {
+                    gradeChart = new Chart(gradeChartCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(gradeCounts),
+                            datasets: [{
+                                label: 'จำนวนนักเรียน',
+                                data: Object.values(gradeCounts),
+                                backgroundColor: [
+                                    'rgba(34, 197, 94, 0.6)', // Green for A
+                                    'rgba(59, 130, 246, 0.6)', // Blue for B
+                                    'rgba(245, 158, 11, 0.6)', // Yellow for C
+                                    'rgba(249, 115, 22, 0.6)', // Orange for D
+                                    'rgba(239, 68, 68, 0.6)' // Red for F
+                                ],
+                                borderColor: [
+                                    'rgba(34, 197, 94, 1)',
+                                    'rgba(59, 130, 246, 1)',
+                                    'rgba(245, 158, 11, 1)',
+                                    'rgba(249, 115, 22, 1)',
+                                    'rgba(239, 68, 68, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
             // Function to render the student table
             function renderTable() {
                 gradeTableBody.innerHTML = ''; // Clear the existing table rows
@@ -181,11 +287,12 @@
                     const { totalScore, grade } = calculateGrade(student.workScore, student.examScore, workWeight, examWeight);
                     const row = document.createElement('tr');
                     row.className = 'border-b border-gray-200 hover:bg-gray-100 transition-colors';
+                    row.setAttribute('data-index', index);
                     row.innerHTML = `
                         <td class="py-3 px-6 text-left whitespace-nowrap">${index + 1}</td>
                         <td class="py-3 px-6 text-left">${student.name}</td>
-                        <td class="py-3 px-6 text-center">${student.workScore}</td>
-                        <td class="py-3 px-6 text-center">${student.examScore}</td>
+                        <td class="py-3 px-6 text-center" contenteditable="true" data-field="workScore">${student.workScore}</td>
+                        <td class="py-3 px-6 text-center" contenteditable="true" data-field="examScore">${student.examScore}</td>
                         <td class="py-3 px-6 text-center font-bold">${totalScore}</td>
                         <td class="py-3 px-6 text-center">
                             <span class="font-bold py-1 px-3 rounded-full text-xs ${
@@ -197,8 +304,7 @@
                             }">${grade}</span>
                         </td>
                         <td class="py-3 px-6 text-center">
-                            <button onclick="deleteStudent(${index})"
-                                    class="text-red-500 hover:text-red-700 transition-colors font-bold">
+                            <button class="delete-btn text-red-500 hover:text-red-700 transition-colors font-bold">
                                 ลบ
                             </button>
                         </td>
@@ -208,13 +314,36 @@
 
                 // Save student data to localStorage after rendering
                 localStorage.setItem('grades', JSON.stringify(students));
+                updateSummary();
             }
 
-            // Global function to delete a student, accessible from the HTML
-            window.deleteStudent = (index) => {
-                students.splice(index, 1); // Remove the student from the array
-                renderTable(); // Re-render the table
-            };
+            // Event listener for the table body to handle edits and deletions
+            gradeTableBody.addEventListener('blur', (e) => {
+                const target = e.target;
+                if (target.matches('[contenteditable="true"]')) {
+                    const index = target.closest('tr').dataset.index;
+                    const field = target.dataset.field;
+                    const newValue = parseFloat(target.textContent);
+
+                    if (isNaN(newValue) || newValue < 0 || newValue > 100) {
+                        showAlert('โปรดป้อนค่าตัวเลขระหว่าง 0-100 เท่านั้น');
+                        target.textContent = students[index][field]; // Revert to old value
+                    } else {
+                        students[index][field] = newValue;
+                        renderTable();
+                    }
+                }
+            }, true); // Use capture phase to ensure event is handled before it bubbles up
+
+            gradeTableBody.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.classList.contains('delete-btn')) {
+                    const index = target.closest('tr').dataset.index;
+                    students.splice(index, 1);
+                    renderTable();
+                    showAlert('ลบนักเรียนเรียบร้อยแล้ว!');
+                }
+            });
 
             // Event listener for the student form submission
             studentForm.addEventListener('submit', (e) => {
@@ -227,6 +356,7 @@
                 students.push({ name, workScore, examScore });
                 renderTable(); // Re-render the table
                 studentForm.reset(); // Clear the form fields
+                showAlert('เพิ่มนักเรียนเรียบร้อยแล้ว!');
             });
 
             // Event listener for the "Calculate All" button
@@ -266,11 +396,57 @@
                 showAlert('ส่งออกไฟล์ CSV เรียบร้อยแล้ว!');
             });
 
+            // Event listener for the "Import CSV" button
+            importCsvBtn.addEventListener('click', () => {
+                // Trigger the hidden file input
+                csvFileInput.click();
+            });
+
+            // Event listener for the file input change
+            csvFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const csvText = event.target.result;
+                        const rows = csvText.trim().split('\n');
+                        const newStudents = [];
+
+                        // Skip header row if it exists
+                        const startRow = rows[0].includes('ชื่อ') || rows[0].includes('name') ? 1 : 0;
+                        
+                        for (let i = startRow; i < rows.length; i++) {
+                            const columns = rows[i].split(',');
+                            // Assumes columns are [index, name, workScore, examScore, ...]
+                            if (columns.length >= 4) {
+                                const name = columns[1].trim().replace(/"/g, '');
+                                const workScore = parseFloat(columns[2].trim());
+                                const examScore = parseFloat(columns[3].trim());
+
+                                if (!isNaN(workScore) && !isNaN(examScore)) {
+                                    newStudents.push({ name, workScore, examScore });
+                                }
+                            }
+                        }
+                        
+                        students = newStudents;
+                        renderTable();
+                        showAlert('นำเข้าข้อมูลเรียบร้อยแล้ว!');
+                    } catch (error) {
+                        showAlert('เกิดข้อผิดพลาดในการประมวลผลไฟล์ โปรดตรวจสอบรูปแบบไฟล์ CSV');
+                        console.error('CSV Parsing error:', error);
+                    }
+                };
+                reader.readAsText(file, 'UTF-8');
+            });
+
             // Event listeners for changes in score weights
             workWeightInput.addEventListener('change', renderTable);
             examWeightInput.addEventListener('change', renderTable);
 
-            // Initial render of the table when the page loads
+            // Initial render of the table and summary when the page loads
             renderTable();
         });
     </script>
