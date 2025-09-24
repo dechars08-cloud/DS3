@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมคำนวณเกรด</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS to make the table scroll on small screens and to make the page look amazing on all devices */
+        @media (max-width: 640px) {
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 sm:p-8 font-sans">
+    <div class="container mx-auto max-w-4xl bg-white p-6 rounded-lg shadow-2xl">
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">ระบบคำนวณเกรด 👩‍🏫</h1>
+
+        <!-- Score Weighting Configuration Section -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+            <h2 class="text-xl font-semibold mb-2 text-gray-700">ตั้งค่าน้ำหนักคะแนน</h2>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
+                    <label for="workWeight" class="block text-gray-600 font-medium">คะแนนเก็บ (0-1):</label>
+                    <input type="number" id="workWeight" value="0.6" step="0.1" min="0" max="1"
+                           class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                </div>
+                <div class="flex-1">
+                    <label for="examWeight" class="block text-gray-600 font-medium">คะแนนสอบ (0-1):</label>
+                    <input type="number" id="examWeight" value="0.4" step="0.1" min="0" max="1"
+                           class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Form Section -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+            <h2 class="text-xl font-semibold mb-2 text-gray-700">เพิ่มนักเรียนใหม่</h2>
+            <form id="studentForm" class="space-y-4">
+                <div>
+                    <label for="studentName" class="block text-gray-600 font-medium">ชื่อ-นามสกุล:</label>
+                    <input type="text" id="studentName" placeholder="ชื่อนักเรียน" required
+                           class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="flex-1">
+                        <label for="workScore" class="block text-gray-600 font-medium">คะแนนเก็บ:</label>
+                        <input type="number" id="workScore" placeholder="0-100" min="0" max="100" required
+                               class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    </div>
+                    <div class="flex-1">
+                        <label for="examScore" class="block text-gray-600 font-medium">คะแนนสอบ:</label>
+                        <input type="number" id="examScore" placeholder="0-100" min="0" max="100" required
+                               class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    </div>
+                </div>
+                <button type="submit"
+                        class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-md">
+                    เพิ่มนักเรียน
+                </button>
+            </form>
+        </div>
+
+        <!-- Results Table Section -->
+        <div class="table-container mb-6">
+            <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                        <th class="py-3 px-6 text-left">#</th>
+                        <th class="py-3 px-6 text-left">ชื่อ</th>
+                        <th class="py-3 px-6 text-center">คะแนนเก็บ</th>
+                        <th class="py-3 px-6 text-center">คะแนนสอบ</th>
+                        <th class="py-3 px-6 text-center">คะแนนรวม</th>
+                        <th class="py-3 px-6 text-center">เกรด</th>
+                        <th class="py-3 px-6 text-center">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="gradeTableBody" class="text-gray-600 text-sm font-light">
+                    <!-- Student data will be populated here by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Action Button Section -->
+        <div class="flex flex-col sm:flex-row gap-4 mt-4">
+            <button id="calculateAllBtn"
+                    class="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-md hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shadow-md">
+                คำนวณเกรดทั้งหมด
+            </button>
+            <button id="exportCsvBtn"
+                    class="flex-1 bg-gray-600 text-white font-bold py-3 px-4 rounded-md hover:bg-gray-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 shadow-md">
+                ส่งออกเป็น CSV
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript Code
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get all necessary elements from the DOM
+            const studentForm = document.getElementById('studentForm');
+            const gradeTableBody = document.getElementById('gradeTableBody');
+            const calculateAllBtn = document.getElementById('calculateAllBtn');
+            const workWeightInput = document.getElementById('workWeight');
+            const examWeightInput = document.getElementById('examWeight');
+            const exportCsvBtn = document.getElementById('exportCsvBtn');
+
+            // Initial student data for demonstration
+            const initialStudents = [
+                { name: 'สมชาย รักเรียน', workScore: 82, examScore: 88 },
+                { name: 'สมหญิง ตั้งใจ', workScore: 76, examScore: 91 },
+                { name: 'มานะ อดทน', workScore: 95, examScore: 85 },
+                { name: 'ปิติ สมบูรณ์', workScore: 68, examScore: 72 },
+                { name: 'ดวงใจ งามพร้อม', workScore: 54, examScore: 63 }
+            ];
+
+            // Load student data from localStorage or use the initial data
+            let students = JSON.parse(localStorage.getItem('grades')) || initialStudents;
+
+            // Custom alert/modal function to replace window.alert
+            function showAlert(message) {
+                // Create modal container
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50';
+                
+                // Create modal content box
+                const modalContent = document.createElement('div');
+                modalContent.className = 'bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center transform scale-95 transition-transform duration-300';
+                modalContent.innerHTML = `
+                    <p class="text-lg font-semibold text-gray-800 mb-4">${message}</p>
+                    <button class="bg-blue-600 text-white font-bold py-2 px-6 rounded-md hover:bg-blue-700 transition-colors">ตกลง</button>
+                `;
+                
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+
+                // Add event listener to close modal
+                const closeBtn = modalContent.querySelector('button');
+                closeBtn.addEventListener('click', () => {
+                    modal.remove();
+                });
+            }
+
+            // Function to calculate total score and grade
+            function calculateGrade(workScore, examScore, workWeight, examWeight) {
+                // Calculate the total weighted score
+                const totalScore = (workScore * workWeight) + (examScore * examWeight);
+                let grade = '';
+
+                // Assign a grade based on the score
+                if (totalScore >= 80) grade = 'A';
+                else if (totalScore >= 70) grade = 'B';
+                else if (totalScore >= 60) grade = 'C';
+                else if (totalScore >= 50) grade = 'D';
+                else grade = 'F';
+
+                // Return an object with the total score and the assigned grade
+                return { totalScore: totalScore.toFixed(2), grade };
+            }
+
+            // Function to render the student table
+            function renderTable() {
+                gradeTableBody.innerHTML = ''; // Clear the existing table rows
+                const workWeight = parseFloat(workWeightInput.value);
+                const examWeight = parseFloat(examWeightInput.value);
+
+                // Check if the weights add up to 1.0, and if not, show an alert and don't render.
+                if (Math.abs(workWeight + examWeight - 1.0) > 0.001) {
+                    showAlert('น้ำหนักคะแนนรวมกันต้องเท่ากับ 1.0');
+                    return;
+                }
+
+                // Loop through the students array to create and append table rows
+                students.forEach((student, index) => {
+                    const { totalScore, grade } = calculateGrade(student.workScore, student.examScore, workWeight, examWeight);
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-200 hover:bg-gray-100 transition-colors';
+                    row.innerHTML = `
+                        <td class="py-3 px-6 text-left whitespace-nowrap">${index + 1}</td>
+                        <td class="py-3 px-6 text-left">${student.name}</td>
+                        <td class="py-3 px-6 text-center">${student.workScore}</td>
+                        <td class="py-3 px-6 text-center">${student.examScore}</td>
+                        <td class="py-3 px-6 text-center font-bold">${totalScore}</td>
+                        <td class="py-3 px-6 text-center">
+                            <span class="font-bold py-1 px-3 rounded-full text-xs ${
+                                grade === 'A' ? 'bg-green-200 text-green-800' :
+                                grade === 'B' ? 'bg-blue-200 text-blue-800' :
+                                grade === 'C' ? 'bg-yellow-200 text-yellow-800' :
+                                grade === 'D' ? 'bg-orange-200 text-orange-800' :
+                                'bg-red-200 text-red-800'
+                            }">${grade}</span>
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <button onclick="deleteStudent(${index})"
+                                    class="text-red-500 hover:text-red-700 transition-colors font-bold">
+                                ลบ
+                            </button>
+                        </td>
+                    `;
+                    gradeTableBody.appendChild(row);
+                });
+
+                // Save student data to localStorage after rendering
+                localStorage.setItem('grades', JSON.stringify(students));
+            }
+
+            // Global function to delete a student, accessible from the HTML
+            window.deleteStudent = (index) => {
+                students.splice(index, 1); // Remove the student from the array
+                renderTable(); // Re-render the table
+            };
+
+            // Event listener for the student form submission
+            studentForm.addEventListener('submit', (e) => {
+                e.preventDefault(); // Prevent the default form submission (page reload)
+                const name = document.getElementById('studentName').value;
+                const workScore = parseFloat(document.getElementById('workScore').value);
+                const examScore = parseFloat(document.getElementById('examScore').value);
+
+                // Add the new student to the array
+                students.push({ name, workScore, examScore });
+                renderTable(); // Re-render the table
+                studentForm.reset(); // Clear the form fields
+            });
+
+            // Event listener for the "Calculate All" button
+            calculateAllBtn.addEventListener('click', () => {
+                renderTable(); // Recalculate and re-render the table
+                showAlert('คำนวณเกรดทั้งหมดเรียบร้อยแล้ว');
+            });
+
+            // Event listener for the "Export CSV" button
+            exportCsvBtn.addEventListener('click', () => {
+                const workWeight = parseFloat(workWeightInput.value);
+                const examWeight = parseFloat(examWeightInput.value);
+                
+                // Header row for CSV file
+                let csvContent = "ลำดับ,ชื่อ,คะแนนเก็บ,คะแนนสอบ,คะแนนรวม,เกรด\n";
+                
+                // Loop through student data and create a row for each
+                students.forEach((student, index) => {
+                    const { totalScore, grade } = calculateGrade(student.workScore, student.examScore, workWeight, examWeight);
+                    const row = `${index + 1},"${student.name}",${student.workScore},${student.examScore},${totalScore},${grade}\n`;
+                    csvContent += row;
+                });
+
+                // Create a Blob from the CSV string
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                
+                // Create a filename and trigger download
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "student_grades.csv");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showAlert('ส่งออกไฟล์ CSV เรียบร้อยแล้ว!');
+            });
+
+            // Event listeners for changes in score weights
+            workWeightInput.addEventListener('change', renderTable);
+            examWeightInput.addEventListener('change', renderTable);
+
+            // Initial render of the table when the page loads
+            renderTable();
+        });
+    </script>
+</body>
+</html>
